@@ -1,0 +1,224 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation movie details:</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, rgba(150,50,50,1) 20%, rgba(50,50,150,1) 60%, rgba(20,20,20,1) 100%);
+            color: white;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            min-height: 850px;
+        }
+        .animationmovie-header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .poster img {
+            width: 250px;
+            height: auto;
+            border-radius: 5px;
+        }
+        .trailer iframe {
+            width: 550px;
+            height: 375px;
+            border-radius: 5px;
+        }
+        .animationmovie-info {
+            margin-top: 20px;
+        }
+        h1 {
+            margin: 0;
+            color: #ffcc00;
+        }
+        .rating {
+            font-weight: bold;
+            font-size: 20px;
+            color: #ffffff;
+        }
+        .category {
+            margin-top: 10px;
+            font-size: 18px;
+            color: #ffcc00;
+        }
+        .description {
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        .actors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .actor {
+            text-align: center;
+        }
+        .actor img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .actor-name {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        .admin-buttons {
+            margin-top: 20px;
+        }
+        .admin-btn {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .admin-btn:hover {
+            background-color: #0056b3;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="animationmovie-header">
+            <div class="poster">
+                <img id="poster" src="" alt="Movie poster">
+            </div>
+            <div class="trailer">
+                <iframe id="trailer" src="" frameborder="0" allowfullscreen></iframe>
+            </div>
+        </div>
+        <div class="animationmovie-info">
+            <h1 id="title"></h1>
+            <div class="rating" id="rating"></div>
+            <div class="category" id="category"></div>
+            <p class="description" id="description"></p>
+        </div>
+        <h2>Actors</h2>
+        <div class="actors" id="actors-list"></div>
+
+        <div id="admin-buttons" class="admin-buttons" style="display: none;">
+            <a id="edit-btn" href="#" class="admin-btn">Edit the animation movie</a>
+            <a id="delete-btn" href="#" class="admin-btn delete-btn">Delete the animation movie</a>
+        </div>
+    </div>
+
+    <script>
+        let userRole = null;
+        const animationmovieId = window.location.pathname.split("/").pop();
+
+        async function checkAuthentication() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("You need to be logged in");
+                window.location.href = "/login";
+                return false;
+            }
+
+            try {
+                const response = await fetch("/me", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error("Failed to load user data");
+
+                return await response.json();
+            } catch (error) {
+                console.error("Error while loading user data:", error);
+                window.location.href = "/login";
+                return false;
+            }
+        }
+
+        async function fetchAnimationMovieDetails() {
+            try {
+                const response = await fetch(`/animationmovies/${animationmovieId}`);
+                if (!response.ok) {
+                    document.body.innerHTML = "<h1>Animation movie not found</h1>";
+                    return;
+                }
+                const animationmovie = await response.json();
+
+                document.getElementById("poster").src = animationmovie.poster_url || "/uploads/default.jpg";
+                document.getElementById("trailer").src = animationmovie.trailer_url ? animationmovie.trailer_url.replace("watch?v=", "embed/") : "";
+                document.getElementById("title").innerText = animationmovie.title;
+                document.getElementById("rating").innerText = `⭐ ${animationmovie.rating || "Not rated"}`;
+                document.getElementById("category").innerText = `Category: ${animationmovie.category}`;
+                document.getElementById("description").innerText = animationmovie.description;
+
+                const actorsList = document.getElementById("actors-list");
+                actorsList.innerHTML = "";
+                animationmovie.actors.forEach(actor => {
+                    const actorElement = document.createElement("div");
+                    actorElement.classList.add("actor");
+                    actorElement.innerHTML = `
+                        <img src="${actor.image_url || "/uploads/default_actor.jpg"}" alt="${actor.name}">
+                        <div class="actor-name">${actor.name}</div>
+                    `;
+                    actorsList.appendChild(actorElement);
+                });
+
+                document.getElementById("edit-btn").href = `/edit_animationmovie/${animationmovieId}`;
+                document.getElementById("delete-btn").href = `/delete_animationmovie/${animationmovieId}`;
+
+            } catch (error) {
+                console.error("Error while loading animation movie data", error);
+            }
+        }
+
+        async function checkUserRole() {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+
+            try {
+                const response = await fetch("/me", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error("Failed to load user data");
+
+                const userData = await response.json();
+                userRole = userData.role;
+
+                if (userRole === "admin") {
+                    document.getElementById("admin-buttons").style.display = "block";
+                }
+            } catch (error) {
+                console.error("Error while loading user data", error);
+            }
+        }
+
+        async function init() {
+            const userData = await checkAuthentication();
+            if (!userData) return;
+
+            await fetchAnimationMovieDetails();
+            await checkUserRole();
+        }
+
+        init();
+    </script>
+</body>
+</html>

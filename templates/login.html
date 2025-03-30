@@ -1,0 +1,107 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: radial-gradient(circle, rgba(150,50,50,1) 20%, rgba(50,50,150,1) 60%, rgba(20,20,20,1) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #ddd;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            width: 320px;
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: black;
+        }
+        label {
+            display: block;
+            text-align: left;
+            margin-top: 10px;
+            color: black;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 20px;
+            background: linear-gradient(45deg, #8b0000, #00008b);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: linear-gradient(45deg, #a50000, #0000a5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Login</h2>
+        <form id="login-form">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit">Sign in</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById("login-form").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {
+                username: formData.get("username"),
+                password: formData.get("password")
+            };
+
+            try {
+                const response = await fetch("/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    localStorage.setItem("token", result.access_token); 
+                    alert("Login successful!");
+                    window.location.href = "/home";
+                } else {
+                    alert("Login failed. Check your credentials.");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        });
+    </script>
+</body>
+</html>

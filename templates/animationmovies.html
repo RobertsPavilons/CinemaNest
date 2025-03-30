@@ -1,0 +1,226 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation movies</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, rgba(150,50,50,1) 20%, rgba(50,50,150,1) 60%, rgba(20,20,20,1) 100%);
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background: linear-gradient(rgba(255, 255, 255, 0.8), rgba(240, 240, 240, 0.9));
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            border: 1px solid black;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        h2 {
+            text-align: center;
+            color: black;
+        }
+        .sort-container {
+            text-align: right;
+            margin-bottom: 10px;
+        }
+        .animationmovies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .animationmovie {
+            display: flex;
+            flex-direction: row;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+            width: 500px;
+            align-items: center;
+        }
+        .animationmovie-image img {
+            width: 150px;
+            height: auto;
+            border-radius: 5px;
+        }
+        .animationmovie-details {
+            padding-left: 15px;
+            color: white;
+        }
+        .animationmovie-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+        .animationmovie-title:hover {
+            text-decoration: underline;
+        }
+        .animationmovie-year, .animationmovie-rating {
+            font-size: 14px;
+            color: grey;
+        }
+        .admin-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .admin-btn {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .admin-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>List of animation movies</h2>
+        <div class="sort-container">
+            <label for="sort-select">Sort By:</label>
+            <select id="sort-select">
+                <option value="title">Alphabetical (Default)</option>
+                <option value="id">ID</option>
+            </select>
+        </div>
+        <div class="animationmovies" id="animationmovies-list">
+        </div>
+    </div>
+    <div id="admin-buttons" class="admin-buttons" style="display: none;">
+        <a href="/add_animationmovie" class="admin-btn">+ Add an Animation movie</a>
+    </div>
+    </div>
+
+    <script>
+        let userRole = null;
+
+        async function checkAuthentication() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("You need to be logged in!.");
+                window.location.href = "/login";
+                return false;
+            }
+
+            try {
+                const response = await fetch("/me", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error("Failed to load user data");
+
+                return await response.json();
+            } catch (error) {
+                console.error("Error while loading user data:", error);
+                window.location.href = "/login";
+                return false;
+            }
+        }
+
+        function sortAnimationMovies(animationmovies, criteria) {
+            if (criteria === "id") {
+                return animationmovies.sort((a, b) => a.id - b.id);
+            } else {
+                return animationmovies.sort((a, b) => a.title.localeCompare(b.title));
+            }
+        }
+        document.getElementById("sort-select").addEventListener("change", async function() {
+            await fetchAnimationMovies();
+        });
+
+        async function fetchAnimationMovies() {
+            try {
+                const token = localStorage.getItem('token'); 
+                if (!token) {
+                    console.error('JWT Token is not available');
+                    return;
+                }
+
+                const response = await fetch('/animationmovies', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                let animationmovies = await response.json();
+
+                const sortBy = document.getElementById("sort-select").value;
+                animationmovies = sortAnimationMovies(animationmovies, sortBy);
+
+                const animationmoviesList = document.getElementById('animationmovies-list');
+                animationmoviesList.innerHTML = ''; 
+
+                animationmovies.forEach(animationmovie => {
+                    const animationmovieElement = document.createElement('div');
+                    animationmovieElement.classList.add('animationmovie');
+
+                    const imageUrl = animationmovie.poster_url ? animationmovie.poster_url : '/uploads/default.jpg';
+
+                    animationmovieElement.innerHTML = `
+                        <div class="animationmovie-image">
+                            <a href="/animationmovielist/${animationmovie.id}">
+                                <img src="${imageUrl}" alt="${animationmovie.title}">
+                            </a>
+                        </div>
+                        <div class="animationmovie-details">
+                            <a href="/animationmovielist/${animationmovie.id}" class="animationmovie-title">${animationmovie.title}</a>
+                            <div class="animationmovie-year">📅 Year: ${animationmovie.year}</div>
+                            <div class="animationmovie-rating">⭐ Rating: ${animationmovie.rating ? animationmovie.rating.toFixed(1) : "Not rated"}</div>
+                        </div>
+                    `;
+
+                    animationmoviesList.appendChild(animationmovieElement);
+                });
+            } catch (error) {
+                console.error('Error while loading animation movies:', error);
+            }
+        }
+
+        async function checkUserRole() {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+
+            try {
+                const response = await fetch("/me", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error("Failed to load user's data");
+
+                const userData = await response.json();
+                userRole = userData.role;
+
+                if (userRole === "admin") {
+                    document.getElementById("admin-buttons").style.display = "block";
+                }
+            } catch (error) {
+                console.error("Error while loading user data:", error);
+            }
+        }
+
+        async function init() {
+            const userData = await checkAuthentication();
+            if (!userData) return;
+
+            await fetchAnimationMovies();
+            await checkUserRole();
+        }
+
+        init();
+    </script>
+
+</body>
+</html>

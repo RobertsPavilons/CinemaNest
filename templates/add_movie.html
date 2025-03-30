@@ -1,0 +1,178 @@
+<html>
+    <head>      
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Add a movie</title>
+        <style>
+            body {
+                background: linear-gradient(135deg, rgba(150,50,50,1) 20%, rgba(50,50,150,1) 60%, rgba(20,20,20,1) 100%);
+                color: white;
+                font-family: Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+            }
+    
+            .container {
+                background: rgba(0, 0, 0, 0.7);
+                padding: 30px;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+                width: 80%;
+                max-width: 500px;
+            }
+    
+            h2 {
+                margin-bottom: 15px;
+                text-align: center;
+            }
+    
+            label {
+                display: block;
+                text-align: left;
+                margin-top: 10px;
+            }
+    
+            input, textarea {
+                width: 100%;
+                padding: 8px;
+                margin-top: 5px;
+                background: rgba(255, 255, 255, 0.8);
+                border: none;
+                border-radius: 5px;
+            }
+    
+            textarea {
+                resize: none;
+                height: 100px;
+            }
+    
+            button {
+                margin-top: 15px;
+                padding: 10px;
+                width: 100%;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                cursor: pointer;
+                border-radius: 5px;
+                transition: 0.3s;
+            }
+    
+            button:hover {
+                background-color: #0056b3;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Add movie</h2>
+            <form id="movie-form">
+                <label for="title">Movie title:</label>
+                <input type="text" id="title" name="title" required>
+    
+                <label for="description">Description:</label>
+                <textarea id="description" name="description" required></textarea>
+    
+                <label for="year">Year:</label>
+                <input type="number" id="year" name="year" required>
+    
+                <label for="poster_url">Poster URL:</label>
+                <input type="text" id="poster_url" name="poster_url">
+    
+                <label for="trailer_url">Trailer URL:</label>
+                <input type="text" id="trailer_url" name="trailer_url">
+    
+                <label for="category">Category:</label>
+                <input type="text" id="category" name="category">
+
+                <label for="rating">Rating (0-10):</label>
+                <input type="number" id="rating" name="rating" min="0" max="10" step="0.1">
+    
+                <label for="actors">Actor ID (seperated by a comma):</label>
+                <input type="text" id="actors" name="actors">
+    
+                <button type="submit">Save changes</button>
+            </form>
+        </div>
+    
+        <script>
+            window.onload = async function() {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    window.location.href = "/login";
+                    return;
+                }
+
+                try {
+                    const userResponse = await fetch("/me", {
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+
+                    if (!userResponse.ok) throw new Error("Failed to load the user");
+
+                    const userData = await userResponse.json();
+                    //console.log("Lietotājs:", userData);
+                    if (userData.role !== "admin") {
+                        alert("You don't have permission to add movies");
+                        window.location.href = "/";
+                        return;
+                    }
+
+                } catch (error) {
+                    console.error("Error:", error);
+                    window.location.href = "/login";
+                    return;
+                }
+
+                document.getElementById("movie-form").addEventListener("submit", async function(event) {
+                    event.preventDefault();
+                    
+                    const title = document.getElementById("title").value;
+                    const description = document.getElementById("description").value;
+                    const year = parseInt(document.getElementById("year").value);
+                    const poster_url = document.getElementById("poster_url").value;
+                    const trailer_url = document.getElementById("trailer_url").value;
+                    const category = document.getElementById("category").value;
+                    const rating = document.getElementById("rating").value;
+                    const actors = document.getElementById("actors").value
+                        .split(",")
+                        .map(id => parseInt(id.trim()))
+                        .filter(id => !isNaN(id));
+    
+                    const movieData = {
+                        title,
+                        description,
+                        year,
+                        poster_url: poster_url || null,
+                        trailer_url: trailer_url || null,
+                        category: category || null,
+                        rating: parseFloat(rating),
+                        actors
+                    };
+
+                    console.log("Movie data:", movieData);
+
+                    const response = await fetch("/movies", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify(movieData)
+                    });
+    
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert("Movie has been added successfully!");
+                    } else {
+                        alert("Error: " + (result.detail || "Unknown error"));
+                    }
+                });
+            };
+        </script>
+    </body>
+</html>

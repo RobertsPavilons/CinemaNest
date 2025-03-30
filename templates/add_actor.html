@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add actor</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, rgba(150,50,50,1) 20%, rgba(50,50,150,1) 60%, rgba(20,20,20,1) 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            width: 350px;
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            margin-top: 10px;
+        }
+
+        input{
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            background: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button{
+            margin-top: 15px;
+            width:100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Add an actor</h2>
+        <form id="actor-form">
+            <label for="name">Full name:</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="image_url">Picture URL:</label>
+            <input type="url" id="image_url" name="image_url" required>
+
+            <button type="submit">Add an actor</button>
+        </form>
+    </div>
+
+
+    <script>
+        window.onload = async function() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                window.location.href = "/login";
+                return;
+            }
+
+            try {
+                const userResponse = await fetch("/me", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (!userResponse.ok) throw new Error("Failed to load user data");
+
+                const userData = await userResponse.json();
+                //console.log("Lietotājs:", userData);
+
+                if (userData.role !== "admin") {
+                    alert("You don't have permission to add actors!.");
+                    window.location.href = "/";
+                    return;
+                }
+
+            } catch (error) {
+                console.error("Error:", error);
+                window.location.href = "/login";
+                return;
+            }
+        };
+
+        document.getElementById("actor-form").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById("name").value;
+            const image_url = document.getElementById("image_url").value;
+            
+            const actorData = { name, image_url };
+            const token = localStorage.getItem("token");
+
+            try {
+                const response = await fetch("/actors", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(actorData)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert("Actor has been added successfully!");
+                    window.location.href = "/add_actor";
+                } else {
+                    throw new Error(result.detail || "Unknown error");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Error: " + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

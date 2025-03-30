@@ -1,0 +1,231 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movies</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, rgba(150,50,50,1) 20%, rgba(50,50,150,1) 60%, rgba(20,20,20,1) 100%);
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background: linear-gradient(rgba(255, 255, 255, 0.8), rgba(240, 240, 240, 0.9));
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            border: 1px solid black;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        h2 {
+            text-align: center;
+            color: black;
+        }
+        .sort-container {
+            text-align: right;
+            margin-bottom: 10px;
+        }
+        .movies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .movie {
+            display: flex;
+            flex-direction: row;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+            width: 500px;
+            align-items: center;
+        }
+        .movie-image img {
+            width: 150px;
+            height: auto;
+            border-radius: 5px;
+        }
+        .movie-details {
+            padding-left: 15px;
+            color: white;
+        }
+        .movie-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+        .movie-title:hover {
+            text-decoration: underline;
+        }
+        .movie-year, .movie-rating {
+            font-size: 14px;
+            color: grey;
+        }
+        .admin-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .admin-btn {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .admin-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>List of movies</h2>
+
+        <div class="sort-container">
+            <label for="sort-select">Sort By:</label>
+            <select id="sort-select">
+                <option value="title">Alphabetical (Default)</option>
+                <option value="id">ID</option>
+            </select>
+        </div>
+
+        <div class="movies" id="movies-list">
+
+        </div>
+    </div>
+    <div id="admin-buttons" class="admin-buttons" style="display: none;">
+        <a href="/add_movie" class="admin-btn">+ Add a movie</a>
+    </div>
+
+    <script>
+        let userRole = null;
+    
+        async function checkAuthentication() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("You need to be logged in.");
+                window.location.href = "/login";
+                return false;
+            }
+    
+            try {
+                const response = await fetch("/me", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+    
+                if (!response.ok) throw new Error("Failed to fetch user data");
+    
+                const userData = await response.json();
+                return userData;
+            } catch (error) {
+                console.error("Error while loading user data:", error);
+                window.location.href = "/login";
+                return false;
+            }
+        }
+
+        function sortMovies(movies, criteria) {
+            if (criteria === "id") {
+                return movies.sort((a, b) => a.id - b.id);
+            } else {
+                return movies.sort((a, b) => a.title.localeCompare(b.title));
+            }
+        }
+        document.getElementById("sort-select").addEventListener("change", async function() {
+            await fetchMovies();
+        });
+    
+        async function fetchMovies() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.error('JWT token is not available');
+                    return;
+                }
+    
+                const response = await fetch('/movies', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                let movies = await response.json();
+                
+                const sortBy = document.getElementById("sort-select").value;
+                movies = sortMovies(movies, sortBy);
+
+                const moviesList = document.getElementById('movies-list');
+                moviesList.innerHTML = '';
+
+                movies.forEach(movie => {
+                    const movieElement = document.createElement('div');
+                    movieElement.classList.add('movie');
+
+                    const imageUrl = movie.poster_url ? movie.poster_url : '/uploads/default.jpg';
+
+                    movieElement.innerHTML = `
+                        <div class="movie-image">
+                            <a href="/movielist/${movie.id}">
+                                <img src="${imageUrl}" alt="${movie.title}">
+                            </a>
+                        </div>
+                        <div class="movie-details">
+                            <a href="/movielist/${movie.id}" class="movie-title">${movie.title}</a>
+                            <div class="movie-year">📅 Year: ${movie.year}</div>
+                            <div class="movie-rating">⭐ Rating: ${movie.rating ? movie.rating.toFixed(1) : "Not rated"}</div>
+                        </div>
+                    `;
+
+                    moviesList.appendChild(movieElement);
+                });
+            } catch (error) {
+                console.error('Error while loading movies:', error);
+            }
+        }
+    
+        async function checkUserRole() {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+    
+            try {
+                const response = await fetch("/me", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+    
+                if (!response.ok) throw new Error("Failed to load user data");
+    
+                const userData = await response.json();
+                userRole = userData.role;
+    
+                if (userRole === "admin") {
+                    document.getElementById("admin-buttons").style.display = "block";
+                }
+            } catch (error) {
+                console.error("Error while loading user data:", error);
+            }
+        }
+    
+        async function init() {
+            const userData = await checkAuthentication();
+            if (!userData) return;
+    
+            await fetchMovies();
+            checkUserRole();
+        }
+    
+        init();
+    </script>    
+</body>
+</html>

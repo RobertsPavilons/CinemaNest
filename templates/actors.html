@@ -1,0 +1,152 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actors</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, rgba(150,50,50,1) 20%, rgba(50,50,150,1) 60%, rgba(20,20,20,1) 100%);
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background: linear-gradient(rgba(255, 255, 255, 0.8), rgba(240, 240, 240, 0.9));
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            border: 1px solid black;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        h2 {
+            text-align: center;
+            color: black;
+        }
+        .actors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .actor {
+            display: flex;
+            flex-direction: row;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+            width: 500px;
+            align-items: center;
+        }
+        .actor-image img {
+            width: 100px;
+            height: auto;
+            border-radius: 5px;
+        }
+        .actor-details {
+            padding-left: 15px;
+            color: white;
+        }
+        .actor-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+        .actor-name:hover {
+            text-decoration: underline;
+        }
+        .actor-id {
+            font-size: 14px;
+            color: grey;
+            font-style: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Actors list</h2>
+        <div class="actors" id="actors-list">
+        </div>
+    </div>
+    <script>
+        async function checkAuthentication() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("You need to be logged in.");
+                window.location.href = "/login";
+                return false;
+            }
+
+            try {
+                const response = await fetch("/me", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error("Failed to fetch your data");
+
+                return await response.json();
+            } catch (error) {
+                console.error("Failed to fetch user's data:", error);
+                window.location.href = "/login";
+                return false;
+            }
+        }
+
+        async function fetchActors() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('JWT Token is not available');
+                return;
+            }
+
+            try {
+                const response = await fetch('/actors', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const actors = await response.json();
+                const actorsList = document.getElementById('actors-list');
+                actorsList.innerHTML = '';
+
+                actors.forEach(actor => {
+                    const actorElement = document.createElement('div');
+                    actorElement.classList.add('actor');
+
+                    const imageUrl = actor.image_url ? actor.image_url : '/uploads/default_actor.jpg';
+
+                    actorElement.innerHTML = `
+                        <div class="actor-image">
+                            <img src="${imageUrl}" alt="${actor.name}">
+                        </div>
+                        <div class="actor-details">
+                            <div class="actor-name">${actor.name}</div>
+                            <div class="actor-id"> ID: ${actor.id}</div>
+                        </div>
+                    `;
+
+                    actorsList.appendChild(actorElement);
+                });
+            } catch (error) {
+                console.error('Failed to load actors!:', error);
+            }
+        }
+
+        async function init() {
+            const userData = await checkAuthentication();
+            if (!userData) return;
+
+            await fetchActors();
+        }
+
+        init();
+    </script>
+</body>
+</html>

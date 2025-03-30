@@ -1,0 +1,187 @@
+<html>
+    <head>
+        <body>
+<title>Register</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: radial-gradient(circle, rgba(150,50,50,1) 20%, rgba(50,50,150,1) 60%, rgba(20,20,20,1) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #ddd;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            width: 320px;
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: black;
+        }
+        label {
+            display: block;
+            text-align: left;
+            margin-top: 10px;
+            color: black;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 20px;
+            background: linear-gradient(45deg, #8b0000, #00008b);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: linear-gradient(45deg, #a50000, #0000a5);
+        }
+        #profile-picture-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-top: 10px;
+            display: none;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Register</h2>
+        <form id="register-form">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+         
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+
+            <label for="confirm-password">Confirm Password:</label>
+            <input type="password" id="confirm-password" name="confirm-password" required>
+
+            <label for="profile-picture">Choose your profile picture:</label>
+            <select id="profile-picture" name="profile_picture" onchange="updateProfilePicture()">
+                <option value="" selected>Choose...</option>
+            </select>
+            
+            <img id="profile-picture-preview" alt="Profile picture">
+            
+            <button type="submit">Sign up</button>
+        </form>
+    </div>
+
+<script>
+async function loadProfilePictures() {
+    try {
+        const response = await fetch("/profilepictures");
+        if (!response.ok) throw new Error("Failed to load profile pictures.");
+        
+        let pictures = await response.json();
+
+        pictures.sort((a, b) => a.name.localeCompare(b.name));
+
+        const selectBox = document.getElementById("profile-picture");
+        selectBox.innerHTML = "";
+
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = "Select a profile picture...";
+        selectBox.appendChild(emptyOption);
+
+        pictures.forEach(picture => {
+            const option = document.createElement("option");
+            option.value = picture.id;
+            option.textContent = picture.name;
+            option.setAttribute("data-url", picture.image_url);
+            selectBox.appendChild(option);
+        });
+
+        updateProfilePicture();
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+function updateProfilePicture() {
+    const selectBox = document.getElementById("profile-picture");
+    const selectedOption = selectBox.options[selectBox.selectedIndex];
+    const imageUrl = selectedOption.getAttribute("data-url");
+    const preview = document.getElementById("profile-picture-preview");
+
+    if (imageUrl) {
+        preview.src = imageUrl;
+        preview.style.display = "block";
+    } else {
+        preview.style.display = "none";
+    }
+}
+
+async function registerUser(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirm-password").value;
+    const profilePictureId = document.getElementById("profile-picture").value;
+
+    if (!username || !password || !confirmPassword) {
+        alert("Please fill in all the fields!");
+        return;
+    }
+    if (password !== confirmPassword) {
+        alert("Passwords don't match!");
+        return;
+    }
+
+    const userData = {
+        username: username,
+        password: password,
+    };
+    if (profilePictureId) {
+        userData.profile_picture = profilePictureId;
+    }
+
+    try {
+        const response = await fetch("/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(userData)
+        });
+
+        if (response.ok) {
+            alert("Registration is successful!");
+            window.location.href = "/login";
+        } else {
+            const error = await response.json();
+            alert("Error: " + error.detail);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Failed to register, try again.");
+    }
+}
+
+document.getElementById("register-form").addEventListener("submit", registerUser);
+loadProfilePictures();
+</script>
+        </body>
+    </head>
+</html>

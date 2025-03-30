@@ -1,0 +1,147 @@
+<html>
+    <head>
+        <title>Edit Account data</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                text-align: center;
+                background: radial-gradient(circle, rgba(150,50,50,1) 20%, rgba(50,50,150,1) 60%, rgba(20,20,20,1) 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+            }
+            .container {
+                background-color: #ddd;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+                width: 320px;
+            }
+            h2 {
+                margin-bottom: 20px;
+                color: black;
+            }
+            label {
+                display: block;
+                text-align: left;
+                margin-top: 10px;
+                color: black;
+                font-weight: bold;
+            }
+            input {
+                width: 100%;
+                padding: 8px;
+                margin-top: 5px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 16px;
+            }
+            button {
+                width: 100%;
+                padding: 10px;
+                margin-top: 20px;
+                background: linear-gradient(45deg, #8b0000, #00008b);
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+                transition: 0.3s;
+            }
+            button:hover {
+                background: linear-gradient(45deg, #a50000, #0000a5);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Edit Account</h2>
+            <form id="edit-form">
+                <label for="username">New Username:</label>
+                <input type="text" id="username" name="username">
+                
+                <label for="password">New Password:</label>
+                <input type="password" id="password" name="password">
+                
+                <button type="submit">Update</button>
+            </form>
+        </div>
+
+        <script>
+            async function checkAuth() {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    alert("You need to be logged in to edit your account.");
+                    window.location.href = "/login";
+                    return null;
+                }
+        
+                try {
+                    const response = await fetch("/me", {
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+        
+                    if (!response.ok) throw new Error("Failed to fetch user data");
+        
+                    return await response.json();
+                } catch (error) {
+                    console.error("Error while loading user data:", error);
+                    window.location.href = "/login";
+                    return null;
+                }
+            }
+        
+            async function updateAccount(event) {
+                event.preventDefault();
+                const token = localStorage.getItem("token");
+                if (!token) return;
+        
+                const username = document.getElementById("username").value;
+                const password = document.getElementById("password").value;
+        
+                if (!username && !password) {
+                    alert("Please enter at least one field to update.");
+                    return;
+                }
+        
+                const userData = {};
+                if (username) userData.username = username;
+                if (password) userData.password = password;
+        
+                try {
+                    const response = await fetch("/update_account", {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify(userData)
+                    });
+        
+                    if (response.ok) {
+                        alert("Account data has been updated successfully!");
+                        window.location.href = "/login";
+                    } else {
+                        const error = await response.json();
+                        alert("Error: " + error.detail);
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                    alert("Failed to update account. Try again later.");
+                }
+            }
+        
+            async function init() {
+                const user = await checkAuth();
+                if (!user) return;
+        
+                document.getElementById("edit-form").addEventListener("submit", updateAccount);
+            }
+        
+            init();
+        </script>
+        
+    </body>
+</html>
