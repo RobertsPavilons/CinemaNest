@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -78,19 +80,19 @@
             color: #ccc;
         }
         .logout {
+            position: absolute;
+            top: 20px;
+            left: 20px;
             background-color: red;
             color: white;
-            padding: 15px 40px;
+            padding: 10px 30px;
             border: none;
             cursor: pointer;
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
             border-radius: 10px;
             transition: 0.3s;
-            font-size: 20px;
+            font-size: 18px;
         }
+
         .logout:hover {
             background-color: darkred;
         }
@@ -371,7 +373,7 @@ function closeProfilePopup() {
                 let animations = await animationsResponse.json();
     
                 let media = [...movies, ...tvShows, ...animations];
-                media = shuffleArray(media).slice(0, 8);
+                media = shuffleArray(media).slice(0, 6);
     
                 const mediaContainer = document.getElementById("movies-container");
                 mediaContainer.innerHTML = "";
